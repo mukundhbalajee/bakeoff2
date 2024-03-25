@@ -188,10 +188,10 @@ boolean checkCorner(float x, float y) {
   // ellipse(d.x + offsetX1, d.y + offsetY1, 10, 10);
   // ellipse(d.x - offsetX2, d.y - offsetY2, 10, 10);
   // ellipse(d.x + offsetX2, d.y + offsetY2, 10, 10);
-  boolean close1 = dist(d.x - offsetX1, d.y - offsetY1, x, y)<inchToPix(.05f);
-  boolean close2 = dist(d.x - offsetX2, d.y - offsetY2, x, y)<inchToPix(.05f);
-  boolean close3 = dist(d.x + offsetX2, d.y + offsetY2, x, y)<inchToPix(.05f);
-  boolean close4 = dist(d.x + offsetX1, d.y + offsetY1, x, y)<inchToPix(.05f);
+  boolean close1 = dist(d.x - offsetX1, d.y - offsetY1, x, y)<inchToPix(.1f);
+  boolean close2 = dist(d.x - offsetX2, d.y - offsetY2, x, y)<inchToPix(.1f);
+  boolean close3 = dist(d.x + offsetX2, d.y + offsetY2, x, y)<inchToPix(.1f);
+  boolean close4 = dist(d.x + offsetX1, d.y + offsetY1, x, y)<inchToPix(.1f);
 
   return close1 || close2 || close3 || close4;
 }
