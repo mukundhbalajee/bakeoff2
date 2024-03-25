@@ -13,14 +13,21 @@ int startTime = 0; // time starts when the first click is captured
 int finishTime = 0; //records the time of the final click
 boolean userDone = false; //is the user done
 
-final int screenPPI = 72; //what is the DPI of the screen you are using
-//you can test this by drawing a 72x72 pixel rectangle in code, and then confirming with a ruler it is 1x1 inch. 
+final int screenPPI = 128; //PPI for 2021 Macbook Pro 14" screen
+//you can test this by drawing a 128x128 pixel rectangle in code, and then confirming with a ruler it is 1x1 inch. 
 
 //These variables are for my example design. Your input code should modify/replace these!
 float logoX = 500;
 float logoY = 500;
 float logoZ = 50f;
 float logoRotation = 0;
+float diagonalX1 = 500;
+float diagonalY1 = 500;
+float diagonalX2;
+float diagonalY2;
+
+
+int stage = 0;
 
 private class Destination
 {
@@ -61,13 +68,31 @@ void setup() {
 
 
 void draw() {
-
   background(40); //background is dark grey
+  if (stage == 0) {
+    diagonalX1 = mouseX-1;
+    diagonalY1 = mouseY-5;
+    if (checkCorner(diagonalX1, diagonalY1)) {
+      background(0, 50, 0);
+    }
+  }
+  if (stage == 1) {
+    logoZ = (float) Math.sqrt((Math.pow(mouseX - diagonalX1, 2) + Math.pow(mouseY - diagonalY1, 2))/2);
+    logoRotation = (float) Math.toDegrees(Math.atan2(diagonalY1 - mouseY, diagonalX1 - mouseX)) + 135;
+    logoX = (diagonalX1 + mouseX) / 2;
+    logoY = (diagonalY1 + mouseY) / 2;
+    if (checkAllQuiet()) {
+      background(0, 50, 0);
+    }
+  }
+
+
+ 
   fill(200);
   noStroke();
   
   //Test square in the top left corner. Should be 1 x 1 inch
-  //rect(inchToPix(0.5), inchToPix(0.5), inchToPix(1), inchToPix(1));
+  // rect(inchToPix(0.5), inchToPix(0.5), inchToPix(1), inchToPix(1));
 
   //shouldn't really modify this printout code unless there is a really good reason to
   if (userDone)
@@ -99,58 +124,18 @@ void draw() {
 
   //===========DRAW LOGO SQUARE=================
   pushMatrix();
-  translate(logoX, logoY); //translate draw center to the center oft he logo square
+  translate(diagonalX1, diagonalY1); //translate draw center to the center oft he logo square
   rotate(radians(logoRotation)); //rotate using the logo square as the origin
   noStroke();
   fill(60, 60, 192, 192);
+  rectMode(CORNER);
   rect(0, 0, logoZ, logoZ);
+  rectMode(CENTER);
   popMatrix();
 
   //===========DRAW EXAMPLE CONTROLS=================
   fill(255);
-  scaffoldControlLogic(); //you are going to want to replace this!
   text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
-}
-
-//my example design for control, which is terrible
-void scaffoldControlLogic()
-{
-  //upper left corner, rotate counterclockwise
-  text("CCW", inchToPix(.4f), inchToPix(.4f));
-  if (mousePressed && dist(0, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoRotation--;
-
-  //upper right corner, rotate clockwise
-  text("CW", width-inchToPix(.4f), inchToPix(.4f));
-  if (mousePressed && dist(width, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoRotation++;
-
-  //lower left corner, decrease Z
-  text("-", inchToPix(.4f), height-inchToPix(.4f));
-  if (mousePressed && dist(0, height, mouseX, mouseY)<inchToPix(.8f))
-    logoZ = constrain(logoZ-inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone!
-
-  //lower right corner, increase Z
-  text("+", width-inchToPix(.4f), height-inchToPix(.4f));
-  if (mousePressed && dist(width, height, mouseX, mouseY)<inchToPix(.8f))
-    logoZ = constrain(logoZ+inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone! 
-
-  //left middle, move left
-  text("left", inchToPix(.4f), height/2);
-  if (mousePressed && dist(0, height/2, mouseX, mouseY)<inchToPix(.8f))
-    logoX-=inchToPix(.02f);
-
-  text("right", width-inchToPix(.4f), height/2);
-  if (mousePressed && dist(width, height/2, mouseX, mouseY)<inchToPix(.8f))
-    logoX+=inchToPix(.02f);
-
-  text("up", width/2, inchToPix(.4f));
-  if (mousePressed && dist(width/2, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoY-=inchToPix(.02f);
-
-  text("down", width/2, height-inchToPix(.4f));
-  if (mousePressed && dist(width/2, height, mouseX, mouseY)<inchToPix(.8f))
-    logoY+=inchToPix(.02f);
 }
 
 void mousePressed()
@@ -164,9 +149,13 @@ void mousePressed()
 
 void mouseReleased()
 {
-  //check to see if user clicked middle of screen within 3 inches, which this code uses as a submit button
-  if (dist(width/2, height/2, mouseX, mouseY)<inchToPix(3f))
-  {
+  if (stage == 0) {
+    stage = 1;
+  } else {
+    //check to see if user clicked middle of screen within 3 inches, which this code uses as a submit button
+    logoX = (diagonalX1 + mouseX) / 2;
+    logoY = (diagonalY1 + mouseY) / 2;
+
     if (userDone==false && !checkForSuccess())
       errorCount++;
 
@@ -177,7 +166,45 @@ void mouseReleased()
       userDone = true;
       finishTime = millis();
     }
+    
+    stage = 0;
   }
+}
+
+boolean checkCorner(float x, float y) {
+  if( trialIndex >= trialCount ){
+    return false;
+  }
+  Destination d = destinations.get(trialIndex);	
+  float halfWidth = (float) Math.sqrt(2) * (d.z / 2);
+  float radians1 = (float) Math.toRadians(d.rotation + 45);
+  float radians2 = (float) Math.toRadians(d.rotation - 45);
+  float offsetX1 =  halfWidth * (float) Math.cos(radians1);
+  float offsetY1 =  halfWidth * (float) Math.sin(radians1);
+  float offsetX2 =  halfWidth * (float) Math.cos(radians2);
+  float offsetY2 =  halfWidth * (float) Math.sin(radians2);
+
+  // ellipse(d.x - offsetX1, d.y - offsetY1, 10, 10);
+  // ellipse(d.x + offsetX1, d.y + offsetY1, 10, 10);
+  // ellipse(d.x - offsetX2, d.y - offsetY2, 10, 10);
+  // ellipse(d.x + offsetX2, d.y + offsetY2, 10, 10);
+  boolean close1 = dist(d.x - offsetX1, d.y - offsetY1, x, y)<inchToPix(.05f);
+  boolean close2 = dist(d.x - offsetX2, d.y - offsetY2, x, y)<inchToPix(.05f);
+  boolean close3 = dist(d.x + offsetX2, d.y + offsetY2, x, y)<inchToPix(.05f);
+  boolean close4 = dist(d.x + offsetX1, d.y + offsetY1, x, y)<inchToPix(.05f);
+
+  return close1 || close2 || close3 || close4;
+}
+
+boolean checkAllQuiet() {
+  if (trialIndex >= trialCount){
+    return false;
+  } 
+  Destination d = destinations.get(trialIndex);	
+  boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
+  boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
+  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"	
+  return closeDist && closeRotation && closeZ;
 }
 
 //probably shouldn't modify this, but email me if you want to for some good reason.
