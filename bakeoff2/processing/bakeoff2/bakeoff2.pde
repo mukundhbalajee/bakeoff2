@@ -18,6 +18,18 @@ float widthMid = 500;
 boolean size = false;
 boolean orientation = false;
 boolean location = false;
+boolean logoMoving = false;
+boolean bg_color = false;
+float prevMouseX;
+float prevMouseY;
+float submitButtonWidth = 100; // width
+float submitButtonHeight = 25; // height
+float submitButtonX;
+float submitButtonY;
+float stepIndicatorX;
+float stepIndicatorY;
+float stepIndicatorWidth = 200;
+float stepIndicatorHeight = 50;
 
 final int screenPPI = 72; //what is the DPI of the screen you are using
 //you can test this by drawing a 72x72 pixel rectangle in code, and then confirming with a ruler it is 1x1 inch. 
@@ -44,9 +56,14 @@ void setup() {
   textFont(createFont("Arial", inchToPix(.3f))); //sets the font to Arial that is 0.3" tall
   textAlign(CENTER);
   rectMode(CENTER); //draw rectangles not from upper left, but from the center outwards
-  
+  println(submitButtonWidth);
   //don't change this! 
   border = inchToPix(2f); //padding of 1.0 inches
+  
+  submitButtonX = width/2;
+  submitButtonY = inchToPix(.3f) + (submitButtonHeight/2);
+  stepIndicatorX = width / 2;
+  stepIndicatorY = inchToPix(1.5f);
   
   println("creating "+trialCount + " targets");
   for (int i=0; i<trialCount; i++) //don't change this! 
@@ -68,7 +85,11 @@ void setup() {
 
 void draw() {
 
-  background(40); //background is dark grey
+  if (bg_color == false) {
+    background(40); //background is dark grey
+  } else {
+    background(0,255,0);
+  }
   fill(200);
   noStroke();
   
@@ -84,7 +105,7 @@ void draw() {
     text("User took " + ((finishTime-startTime)/1000f/trialCount+(errorCount*errorPenalty)) + " sec per destination inc. penalty", width/2, inchToPix(.4f)*4);
     return;
   }
-
+    
   //===========DRAW DESTINATION SQUARES=================
   for (int i=trialIndex; i<trialCount; i++) // reduces over time
   {
@@ -111,52 +132,80 @@ void draw() {
   fill(60, 60, 192, 192);
   rect(0, 0, logoZ, logoZ);
   popMatrix();
-
+  heightMid = logoY;
+  widthMid = logoX;
   //===========DRAW EXAMPLE CONTROLS=================
+  if((size == false || orientation == false) && bg_color)
+  {
+    // Draw the submit button
+    fill(200); // Button color
+    //submitButtonX=mouseX;
+    //submitButtonY=mouseY;
+    if (mouseX > submitButtonX-(submitButtonWidth/2) && mouseX < submitButtonX + (submitButtonWidth/2) &&
+        mouseY > submitButtonY-(submitButtonHeight/2) && mouseY < submitButtonY + (submitButtonHeight/2)) {
+      fill(150); // Button hover color
+    }
+    rect(submitButtonX, submitButtonY, submitButtonWidth, submitButtonHeight);
+    fill(0);
+    text("Submit", submitButtonX, submitButtonY+10);
+  }
+  drawStepIndicator();
   fill(255);
-  scaffoldControlLogic(); //you are going to want to replace this!
-  text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(.8f));
+  scaffoldControlLogic();
+  text("Trial " + (trialIndex+1) + " of " +trialCount, width/2, inchToPix(1f));
 }
+
+public boolean inSubmit() {
+  return ((size == false || orientation == false) && bg_color) && (mouseX > submitButtonX-(submitButtonWidth/2) && mouseX < submitButtonX + (submitButtonWidth/2) &&
+         mouseY > submitButtonY-(submitButtonHeight/2) && mouseY < submitButtonY + (submitButtonHeight/2) && (!size || !orientation));
+}  
 
 //my example design for control, which is terrible
 void scaffoldControlLogic()
 {
-  //upper left corner, rotate counterclockwise
-  text("CCW", inchToPix(.4f), inchToPix(.4f));
-  if (mousePressed && dist(0, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoRotation--;
+  if (size == false && mouseY > inchToPix(.8f) && mousePressed ) {
+    if (mouseY > heightMid) 
+      logoZ = constrain(logoZ-inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone!
+    else 
+      logoZ = constrain(logoZ+inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone!
+  } else if (size == true && orientation == false && mouseY > inchToPix(.8f) && mousePressed){
+    if(mouseX < widthMid)
+      logoRotation--;
+    else
+      logoRotation++;
+  } else if (size == true && orientation == true && location == false) {
+    logoY = max(inchToPix(.8f)+(logoZ/2),mouseY);
+    logoX = mouseX;
+  }
+  stepSuccessCheck();
+}
 
-  //upper right corner, rotate clockwise
-  text("CW", width-inchToPix(.4f), inchToPix(.4f));
-  if (mousePressed && dist(width, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoRotation++;
-
-  //lower left corner, decrease Z
-  text("-", inchToPix(.4f), height-inchToPix(.4f));
-  if (mousePressed && dist(0, height, mouseX, mouseY)<inchToPix(.8f))
-    logoZ = constrain(logoZ-inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone!
-
-  //lower right corner, increase Z
-  text("+", width-inchToPix(.4f), height-inchToPix(.4f));
-  if (mousePressed && dist(width, height, mouseX, mouseY)<inchToPix(.8f))
-    logoZ = constrain(logoZ+inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone! 
-
-  //left middle, move left
-  text("left", inchToPix(.4f), height/2);
-  if (mousePressed && dist(0, height/2, mouseX, mouseY)<inchToPix(.8f))
-    logoX-=inchToPix(.02f);
-
-  text("right", width-inchToPix(.4f), height/2);
-  if (mousePressed && dist(width, height/2, mouseX, mouseY)<inchToPix(.8f))
-    logoX+=inchToPix(.02f);
-
-  text("up", width/2, inchToPix(.4f));
-  if (mousePressed && dist(width/2, 0, mouseX, mouseY)<inchToPix(.8f))
-    logoY-=inchToPix(.02f);
-
-  text("down", width/2, height-inchToPix(.4f));
-  if (mousePressed && dist(width/2, height, mouseX, mouseY)<inchToPix(.8f))
-    logoY+=inchToPix(.02f);
+public void drawStepIndicator() {
+  String curr_step="";
+  Destination d = destinations.get(trialIndex);  
+  if(!size)
+  {
+    if(logoZ < d.z)
+      curr_step = "Increase size";
+    else
+      curr_step = "Decrease size";
+  }
+  else if(!orientation)
+  {
+    float diff = (abs(d.rotation-logoRotation) % 90);
+    if(diff<45) 
+      curr_step = "Rotate Clockwise";
+    else
+      curr_step = "Rotate Counter-Clockwise";
+  }
+  else if(!location)
+    curr_step = "Move box";
+  else
+    curr_step = "HIT SUBMIT";
+  fill(100);
+  rect(stepIndicatorX, stepIndicatorY, stepIndicatorWidth, stepIndicatorHeight);
+  fill(0); // Set color for text
+  text(curr_step, stepIndicatorX, stepIndicatorY+7);
 }
 
 void mousePressed()
@@ -166,65 +215,65 @@ void mousePressed()
     startTime = millis();
     println("time started!");
   }
-  
-  if (size == false) {
-    float delta = mouseY - heightMid;
-    println("delta is ", delta);
-    logoZ += (delta * 0.01); 
-    logoZ = constrain(logoZ+inchToPix(.02f), .01, inchToPix(4f)); //leave min and max alone!
-  }
-  
 }
-
-//void mouseMoved()
-//{
-//}
 
 void mouseReleased()
 {
-  Destination d = destinations.get(trialIndex);  
-  //check to see if user clicked middle of screen within 1 inch, which this code uses as a submit button
-  if (dist(width/2, height, mouseX, mouseY)<inchToPix(1f))
-  {
-    if (userDone == false) {
-      boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"
-      boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
-      boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
-      
-      if (!closeZ)
+  // Check if the click is within the button's area
+  if (mouseX > submitButtonX-(submitButtonWidth/2) && mouseX < submitButtonX + (submitButtonWidth/2) &&
+      mouseY > submitButtonY-(submitButtonHeight/2) && mouseY < submitButtonY + (submitButtonHeight/2) && (!size || !orientation)) {
+    if (size == false) 
+      size = true;
+    else if (orientation == false) 
+      orientation = true;
+    } else if (size == true && orientation == true && location == false)
+    {
+      location = true; println("ENTERED");
+      // Perform the action for the submit button
+      if (userDone==false && !checkForSuccess())
       {
-        size = false;
         errorCount++;
-      }  
-      else
-        size = true;
-      
-      if (!closeRotation)
-      {
-        orientation = false;
-        errorCount++;
+        println("ERROR");
       }
-      else
-        orientation = true;
-        
-      if (!closeDist)
-      {
-        location = false;
-        errorCount++;
-      }
-      else
-        location = true;
-        
-
+      size = false;
+      orientation=false;
+      location=false;
       trialIndex++; //and move on to next trial
   
-      if (trialIndex==trialCount)
+      if (trialIndex==trialCount && userDone==false)
       {
         userDone = true;
         finishTime = millis();
       }
-    }
+    bg_color = false;
   }
+}
+
+public void stepSuccessCheck()
+{
+  Destination d = destinations.get(trialIndex);  
+  boolean closeZ = abs(d.z - logoZ)<inchToPix(.1f); //has to be within +-0.1"
+  boolean closeDist = dist(d.x, d.y, logoX, logoY)<inchToPix(.05f); //has to be within +-0.05"
+  boolean closeRotation = calculateDifferenceBetweenAngles(d.rotation, logoRotation)<=5;
+  
+  if (!closeZ && !size)
+  {
+    bg_color = false;
+    size = false;
+  } else if(closeZ && !size)
+    bg_color = true;
+  else if (!closeRotation && !orientation && size)
+  {
+    orientation = false;
+    bg_color = false;
+  } else if(closeRotation && !orientation && size)
+    bg_color = true;
+  else if (!closeDist && !location && (size && orientation))
+  {
+    location = false;
+    bg_color = false;
+  } else if (closeDist && !location && (size && orientation))
+    bg_color = true;
 }
 
 //probably shouldn't modify this, but email me if you want to for some good reason.
@@ -240,7 +289,7 @@ public boolean checkForSuccess()
   println("Close Enough Z: " +  closeZ + " (logo Z = " + d.z + ", destination Z = " + logoZ +")");
   println("Close enough all: " + (closeDist && closeRotation && closeZ));
 
-  return closeDist && closeRotation && closeZ;
+  return closeZ && closeRotation && closeDist;
 }
 
 //utility function I include to calc diference between two angles
